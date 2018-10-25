@@ -1,0 +1,8 @@
+[package]
+name = "copper"
+version = "0.1.0"
+authors = ["Marko <zeratul@posteo.de>"]
+edition = "2018"
+
+[dependencies]
+image = "*"
