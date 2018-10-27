@@ -46,14 +46,14 @@ pub fn lsb_embed(filename: String, message: String) {
 
     }
     // iterate chars
-    for (num_byte, ch) in message.bytes().enumerate() {
+    for (byte_idx, ch) in message.bytes().enumerate() {
         println!("{}", ch);
         let mut byte: u8 = ch as u8;
         // iterate bits
         for i in 0..8 as u32 {
-            let num_bit = num_byte as u32 + i + 32;
-            let x: u32 = num_bit % width;
-            let y: u32 = num_bit / width;
+            let bit_idx = byte_idx as u32 + i + 32;
+            let x: u32 = bit_idx % width;
+            let y: u32 = bit_idx / width;
             let bit_to_embed = byte % 2;
             byte = byte / 2;
             println!("  {}, {}", bit_to_embed, byte);
@@ -68,16 +68,24 @@ pub fn lsb_embed(filename: String, message: String) {
 pub fn lsb_extract(filename: String) {
     let img = image::open(filename).unwrap().to_rgba();
     let (width, _height) = img.dimensions();
+    // extract message length
     let mut msg_len: u32 = 0;
-    for i in 0..32 {
+    for i in (0..32).rev() {
         let x: u32 = i % width;
         let y: u32 = i / width;
         let bit = extract_bit_from_pixel(&img, x, y);
-        println!("{}", bit);
+        msg_len = msg_len << 1;
         msg_len += bit as u32;
-        msg_len = msg_len >> 1;
     }
     println!("---{}---", msg_len);
+    // extract char by char
+    for char_idx in (0..msg_len) {
+        let char: u8 = 0;
+        for i in (0..8).rev() {
+            let bit_idx: u32 = char_idx * 8 + i;
+        }
+
+    }
 }
 
 fn embed_bit_into_pixel(img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, x: u32, y: u32, bit_to_embed: usize) {//-> &mut ImageBuffer<Rgba<u8>, Vec<u8>> {
