@@ -1,7 +1,11 @@
 extern crate copper;
-
+extern crate image;
 
 fn main() {
-    copper::lsb_embed("avatar.png".to_string(), "My hovercraft is full of eels!".to_string());
-    copper::lsb_extract("test.png".to_string());
+    let cover = image::open("avatar.png".to_string()).unwrap().to_rgba();
+    let output = copper::lsb_embed(&cover, &"My hovercraft is full of eels!".to_string());
+    output.save("test.png").unwrap();
+    
+    let msg = copper::lsb_extract(&output);
+    println!("{}", msg);
 }
