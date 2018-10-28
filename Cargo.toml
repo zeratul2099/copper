@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 image = "*"
 sha3 = "0.8.0"
+rand = "0.3.14"
