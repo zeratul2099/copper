@@ -1,6 +1,7 @@
 extern crate image;
 extern crate rand;
 
+use std::collections::HashSet;
 use image::{ImageBuffer,Rgba};
 
 use rand::{Rng, SeedableRng, StdRng}; 
@@ -20,21 +21,19 @@ mod tests {
     }
 }
 
-
 pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
     let mut output = cover.clone();
     let (width, height) = output.dimensions();
     //println!("dimensions {} {}", width, height);
     let mut msg_len = message.len();
+    let mut already_embedded: HashSet<(u32, u32, usize)> = HashSet::new();
     // rng
     let seed: &[_] = &[1, 2, 3, 4];
     let mut rng: StdRng = SeedableRng::from_seed(seed);
 
     // embed msg len first
     for _i in 0..32 as u32 {
-        let x = rng.gen_range::<u32>(0, width);
-        let y = rng.gen_range::<u32>(0, height);
-        let c = rng.gen_range::<usize>(0, 3);
+        let (x, y, c) = get_free_pixel(&mut rng, &mut already_embedded, width, height);
         //println!("will embed into x:{}, y:{}, c:{}", x, y, c); 
         let bit_to_embed = msg_len % 2;
         msg_len = msg_len / 2;
@@ -47,9 +46,7 @@ pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String) -> Im
         let mut byte: u8 = ch as u8;
         // iterate bits
         for _i in 0..8 as u32 {
-            let x = rng.gen_range::<u32>(0, width);
-            let y = rng.gen_range::<u32>(0, height);
-            let c = rng.gen_range::<usize>(0, 3);
+            let (x, y, c) = get_free_pixel(&mut rng, &mut already_embedded, width, height);
             let bit_to_embed = byte % 2;
             byte = byte / 2;
             //println!("  {}, x:{}, y:{}, c:{}", bit_to_embed, x, y, c);
@@ -64,13 +61,12 @@ pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> String {
     let (width, height) = steganogram.dimensions();
     // extract message length
     let mut msg_len: u32 = 0;
+    let mut already_embedded: HashSet<(u32, u32, usize)> = HashSet::new();
     // rng
     let seed: &[_] = &[1, 2, 3, 4];
     let mut rng: StdRng = SeedableRng::from_seed(seed);
     for i in 0..32 {
-        let x = rng.gen_range::<u32>(0, width);
-        let y = rng.gen_range::<u32>(0, height);
-        let c = rng.gen_range::<usize>(0, 3);
+        let (x, y, c) = get_free_pixel(&mut rng, &mut already_embedded, width, height);
         let bit = extract_bit_from_pixel(&steganogram, x, y, c);
         msg_len += bit as u32 * 2_u32.pow(i);
     }
@@ -80,9 +76,7 @@ pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> String {
     for _char_idx in 0..msg_len {
         let mut byte: u8 = 0;
         for i in 0..8 {
-            let x = rng.gen_range::<u32>(0, width);
-            let y = rng.gen_range::<u32>(0, height);
-            let c = rng.gen_range::<usize>(0, 3);
+            let (x, y, c) = get_free_pixel(&mut rng, &mut already_embedded, width, height);
             let bit = extract_bit_from_pixel(&steganogram, x, y, c);
             //println!("  {}, x:{}, y:{}, c:{}", bit, x, y, c);
             byte += bit * 2_u8.pow(i);
@@ -90,6 +84,19 @@ pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> String {
         message.push(byte as char);
     }
     message
+}
+
+fn get_free_pixel(rng: &mut StdRng, already_embedded: &mut HashSet<(u32, u32, usize)>, width: u32, height: u32) -> (u32, u32, usize) {
+    let mut x = rng.gen_range::<u32>(0, width);
+    let mut y = rng.gen_range::<u32>(0, height);
+    let mut c = rng.gen_range::<usize>(0, 3);
+    while already_embedded.contains(&(x, y, c)) {
+        x = rng.gen_range::<u32>(0, width);
+        y = rng.gen_range::<u32>(0, height);
+        c = rng.gen_range::<usize>(0, 3);
+    }
+    already_embedded.insert((x, y, c));
+    (x, y, c)
 }
 
 fn embed_bit_into_pixel(img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, x: u32, y: u32, c: usize, bit_to_embed: usize) {
