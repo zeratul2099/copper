@@ -1,8 +1,10 @@
 extern crate image;
 extern crate rand;
+extern crate sha3;
 
 use std::collections::HashSet;
 use image::{ImageBuffer,Rgba};
+use sha3::{Digest, Sha3_256};
 
 use rand::{Rng, SeedableRng, StdRng}; 
 #[cfg(test)]
@@ -13,23 +15,22 @@ mod tests {
     #[test]
     fn it_works() {
         let test_message = "My hovercraft is full of eels!".to_string();
+        let passphrase = "Foobar123".to_string();
         let cover = image::open("avatar.png".to_string()).unwrap().to_rgba();
-        let output = lsb_embed(&cover, &test_message);
+        let output = lsb_embed(&cover, &test_message, &passphrase);
         output.save("test.png").unwrap();
-        let extracted_message = lsb_extract(&output);
+        let extracted_message = lsb_extract(&output, &passphrase);
         assert_eq!(test_message, extracted_message);
     }
 }
 
-pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String, passphrase: &String) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
     let mut output = cover.clone();
     let (width, height) = output.dimensions();
     //println!("dimensions {} {}", width, height);
     let mut msg_len = message.len();
     let mut already_embedded: HashSet<(u32, u32, usize)> = HashSet::new();
-    // rng
-    let seed: &[_] = &[1, 2, 3, 4];
-    let mut rng: StdRng = SeedableRng::from_seed(seed);
+    let mut rng = get_rng(&passphrase);
 
     // embed msg len first
     for _i in 0..32 as u32 {
@@ -57,14 +58,12 @@ pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String) -> Im
     output
 }
 
-pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> String {
+pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>, passphrase: &String) -> String {
     let (width, height) = steganogram.dimensions();
     // extract message length
     let mut msg_len: u32 = 0;
     let mut already_embedded: HashSet<(u32, u32, usize)> = HashSet::new();
-    // rng
-    let seed: &[_] = &[1, 2, 3, 4];
-    let mut rng: StdRng = SeedableRng::from_seed(seed);
+    let mut rng = get_rng(&passphrase);
     for i in 0..32 {
         let (x, y, c) = get_free_pixel(&mut rng, &mut already_embedded, width, height);
         let bit = extract_bit_from_pixel(&steganogram, x, y, c);
@@ -84,6 +83,17 @@ pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> String {
         message.push(byte as char);
     }
     message
+}
+
+fn get_rng(passphrase: &String) -> StdRng {
+    // rng
+    let mut hasher = Sha3_256::new();
+    hasher.input(passphrase);
+    let hash = hasher.result();
+    // TODO do better than this
+    let seed: &[_] = &[hash[0] as usize, hash[1] as usize, hash[2] as usize, hash[3] as usize];
+    let rng: StdRng = SeedableRng::from_seed(seed);
+    rng
 }
 
 fn get_free_pixel(rng: &mut StdRng, already_embedded: &mut HashSet<(u32, u32, usize)>, width: u32, height: u32) -> (u32, u32, usize) {
