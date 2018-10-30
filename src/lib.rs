@@ -18,17 +18,24 @@ mod tests {
         let passphrase = "Foobar123".to_string();
         let cover = image::open("avatar.png".to_string()).unwrap().to_rgba();
         let output = lsb_embed(&cover, &test_message, &passphrase);
+        assert_eq!(output.is_ok(), true);
+        let output = output.unwrap();
         output.save("test.png").unwrap();
         let extracted_message = lsb_extract(&output, &passphrase);
-        assert_eq!(test_message, extracted_message);
+        assert_eq!(extracted_message.is_ok(), true);
+        assert_eq!(test_message, extracted_message.unwrap());
     }
 }
 
-pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String, passphrase: &String) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String, passphrase: &String) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, String> {
     let mut output = cover.clone();
     let (width, height) = output.dimensions();
     //println!("dimensions {} {}", width, height);
     let mut msg_len = message.len();
+    let embeddable_len = width * height * 3 / 10; // only embed in a max of 10 percent of possible pixels
+    if msg_len * 8 + 32 > embeddable_len as usize {
+        return Err("Message too long for image".to_string());
+    }
     let mut already_embedded: HashSet<(u32, u32, usize)> = HashSet::new();
     let mut rng = get_rng(&passphrase);
 
@@ -55,10 +62,10 @@ pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String, passp
         }
     }
     println!("+++{}+++", message.len());
-    output
+    Ok(output)
 }
 
-pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>, passphrase: &String) -> String {
+pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>, passphrase: &String) -> Result<String, String> {
     let (width, height) = steganogram.dimensions();
     // extract message length
     let mut msg_len: u32 = 0;
@@ -68,6 +75,10 @@ pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>, passphrase: &St
         let (x, y, c) = get_free_pixel(&mut rng, &mut already_embedded, width, height);
         let bit = extract_bit_from_pixel(&steganogram, x, y, c);
         msg_len += bit as u32 * 2_u32.pow(i);
+    }
+    let embeddable_len = width * height * 3 / 10; // only embed in a max of 10 percent of possible pixels
+    if msg_len * 8 + 32 > embeddable_len {
+        return Err("Something went wrong on extracting. Wrong passphrase? No message embedded?".to_string());
     }
     println!("---{}---", msg_len);
     // extract char by char
@@ -82,7 +93,7 @@ pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>, passphrase: &St
         }
         message.push(byte as char);
     }
-    message
+    Ok(message)
 }
 
 fn get_rng(passphrase: &String) -> StdRng {

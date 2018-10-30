@@ -9,9 +9,9 @@ fn main() {
     io::stdin().read_line(&mut message).expect("Error reading input");
 
     let cover = image::open("avatar.png".to_string()).unwrap().to_rgba();
-    let output = copper::lsb_embed(&cover, &message, &"Geheim".to_string());
+    let output = copper::lsb_embed(&cover, &message, &"Geheim".to_string()).unwrap();
     output.save("test.png").unwrap();
     
-    let msg = copper::lsb_extract(&output, &"Geheim".to_string());
+    let msg = copper::lsb_extract(&output, &"Geheim".to_string()).unwrap();
     println!("{}", msg);
 }

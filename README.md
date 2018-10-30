@@ -10,7 +10,6 @@ Copper only provides the LSB-algorithm (more to come).
 
 
 TODO:
-    - check length before embedding
     - tests
     - more algorithms 
     - python bindings
