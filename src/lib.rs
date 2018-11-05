@@ -16,11 +16,11 @@ mod tests {
     fn it_works() {
         let test_message = "My hovercraft is full of eels!".to_string();
         let passphrase = "Foobar123".to_string();
-        let cover = image::open("avatar.png".to_string()).unwrap().to_rgba();
+        let cover = image::open("test.png".to_string()).unwrap().to_rgba();
         let output = lsb_embed(&cover, &test_message, &passphrase);
         assert_eq!(output.is_ok(), true);
         let output = output.unwrap();
-        output.save("test.png").unwrap();
+        output.save("stego.png").unwrap();
         let extracted_message = lsb_extract(&output, &passphrase);
         assert_eq!(extracted_message.is_ok(), true);
         assert_eq!(test_message, extracted_message.unwrap());

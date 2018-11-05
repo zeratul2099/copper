@@ -8,10 +8,10 @@ fn main() {
     println!("Enter message to embed:");
     io::stdin().read_line(&mut message).expect("Error reading input");
 
-    let cover = image::open("avatar.png".to_string()).unwrap().to_rgba();
-    let output = copper::lsb_embed(&cover, &message, &"Geheim".to_string()).unwrap();
-    output.save("test.png").unwrap();
+    let cover = image::open("test.png".to_string()).unwrap().to_rgba();
+    let output = copper::lsb_embed(&cover, &message, &"foobar123".to_string()).unwrap();
+    output.save("stego.png").unwrap();
     
-    let msg = copper::lsb_extract(&output, &"Geheim".to_string()).unwrap();
+    let msg = copper::lsb_extract(&output, &"foobar123".to_string()).unwrap();
     println!("{}", msg);
 }
