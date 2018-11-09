@@ -2,11 +2,11 @@ extern crate image;
 extern crate rand;
 extern crate sha3;
 
-use std::collections::HashSet;
-use image::{ImageBuffer,Rgba};
+use image::{ImageBuffer, Rgba};
 use sha3::{Digest, Sha3_256};
+use std::collections::HashSet;
 
-use rand::{Rng, SeedableRng, StdRng}; 
+use rand::{Rng, SeedableRng, StdRng};
 #[cfg(test)]
 mod tests {
 
@@ -27,7 +27,11 @@ mod tests {
     }
 }
 
-pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String, passphrase: &String) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, String> {
+pub fn lsb_embed(
+    cover: &ImageBuffer<Rgba<u8>, Vec<u8>>,
+    message: &String,
+    passphrase: &String,
+) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, String> {
     let mut output = cover.clone();
     let (width, height) = output.dimensions();
     //println!("dimensions {} {}", width, height);
@@ -42,11 +46,10 @@ pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String, passp
     // embed msg len first
     for _i in 0..32 as u32 {
         let (x, y, c) = get_free_pixel(&mut rng, &mut already_embedded, width, height);
-        //println!("will embed into x:{}, y:{}, c:{}", x, y, c); 
+        //println!("will embed into x:{}, y:{}, c:{}", x, y, c);
         let bit_to_embed = msg_len % 2;
         msg_len = msg_len / 2;
         embed_bit_into_pixel(&mut output, x, y, c, bit_to_embed);
-
     }
     // iterate chars
     for ch in message.bytes() {
@@ -65,7 +68,10 @@ pub fn lsb_embed(cover: &ImageBuffer<Rgba<u8>, Vec<u8>>, message: &String, passp
     Ok(output)
 }
 
-pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>, passphrase: &String) -> Result<String, String> {
+pub fn lsb_extract(
+    steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>,
+    passphrase: &String,
+) -> Result<String, String> {
     let (width, height) = steganogram.dimensions();
     // extract message length
     let mut msg_len: u32 = 0;
@@ -78,7 +84,10 @@ pub fn lsb_extract(steganogram: &ImageBuffer<Rgba<u8>, Vec<u8>>, passphrase: &St
     }
     let embeddable_len = width * height * 3 / 10; // only embed in a max of 10 percent of possible pixels
     if msg_len * 8 + 32 > embeddable_len {
-        return Err("Something went wrong on extracting. Wrong passphrase? No message embedded?".to_string());
+        return Err(
+            "Something went wrong on extracting. Wrong passphrase? No message embedded?"
+                .to_string(),
+        );
     }
     println!("---{}---", msg_len);
     // extract char by char
@@ -133,13 +142,18 @@ fn get_rng(passphrase: &String) -> StdRng {
         hash[28] as usize,
         hash[29] as usize,
         hash[30] as usize,
-        hash[31] as usize
+        hash[31] as usize,
     ];
     let rng: StdRng = SeedableRng::from_seed(seed);
     rng
 }
 
-fn get_free_pixel(rng: &mut StdRng, already_embedded: &mut HashSet<(u32, u32, usize)>, width: u32, height: u32) -> (u32, u32, usize) {
+fn get_free_pixel(
+    rng: &mut StdRng,
+    already_embedded: &mut HashSet<(u32, u32, usize)>,
+    width: u32,
+    height: u32,
+) -> (u32, u32, usize) {
     let mut x = rng.gen_range::<u32>(0, width);
     let mut y = rng.gen_range::<u32>(0, height);
     let mut c = rng.gen_range::<usize>(0, 3);
@@ -152,7 +166,13 @@ fn get_free_pixel(rng: &mut StdRng, already_embedded: &mut HashSet<(u32, u32, us
     (x, y, c)
 }
 
-fn embed_bit_into_pixel(img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, x: u32, y: u32, c: usize, bit_to_embed: usize) {
+fn embed_bit_into_pixel(
+    img: &mut ImageBuffer<Rgba<u8>, Vec<u8>>,
+    x: u32,
+    y: u32,
+    c: usize,
+    bit_to_embed: usize,
+) {
     let mut pixel = img.get_pixel(x, y).clone();
     // only embed in red
     pixel.data[c] = embed_bit_into_byte(pixel.data[c], bit_to_embed);
