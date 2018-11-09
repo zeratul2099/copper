@@ -101,8 +101,40 @@ fn get_rng(passphrase: &String) -> StdRng {
     let mut hasher = Sha3_256::new();
     hasher.input(passphrase);
     let hash = hasher.result();
-    // TODO do better than this
-    let seed: &[_] = &[hash[0] as usize, hash[1] as usize, hash[2] as usize, hash[3] as usize];
+    let seed: &[_] = &[
+        hash[0] as usize,
+        hash[1] as usize,
+        hash[2] as usize,
+        hash[3] as usize,
+        hash[4] as usize,
+        hash[5] as usize,
+        hash[6] as usize,
+        hash[7] as usize,
+        hash[8] as usize,
+        hash[9] as usize,
+        hash[10] as usize,
+        hash[11] as usize,
+        hash[12] as usize,
+        hash[13] as usize,
+        hash[14] as usize,
+        hash[15] as usize,
+        hash[16] as usize,
+        hash[17] as usize,
+        hash[18] as usize,
+        hash[19] as usize,
+        hash[20] as usize,
+        hash[21] as usize,
+        hash[22] as usize,
+        hash[23] as usize,
+        hash[24] as usize,
+        hash[25] as usize,
+        hash[26] as usize,
+        hash[27] as usize,
+        hash[28] as usize,
+        hash[29] as usize,
+        hash[30] as usize,
+        hash[31] as usize
+    ];
     let rng: StdRng = SeedableRng::from_seed(seed);
     rng
 }
